@@ -22,9 +22,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Install Poetry
-      uses: python-poetry/poetry@v1
-      with:
-        version: 1.7.1
+      uses: snok/install-poetry@v1
 
     - name: Load cached venv
       id: cached-poetry-dependencies
