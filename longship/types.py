@@ -151,6 +151,10 @@ class WebhookPayload:
             filtered_data = {k: v for k, v in self.data.items() if k in field_names}
             return data_class(**filtered_data)
         else:
+            # If data is already an instance of the correct class, return it as is
+            if isinstance(self.data, data_class):
+                return self.data
+            # Otherwise, try to create a new instance (this might fail for required fields)
             return data_class(**self.data)
 
     def __attrs_post_init__(self):
