@@ -69,6 +69,7 @@ class BaseSessionData:
 class SessionStartData(BaseSessionData):
     locationid: Optional[str] = attr.ib(default=None)
     evseid: Optional[str] = attr.ib(default=None)
+    stateofcharge: Optional[float] = attr.ib(default=None)
 
 
 @attr.s(auto_attribs=True)
@@ -78,12 +79,14 @@ class SessionUpdateData(BaseSessionData):
     totalcosts: float
     locationid: Optional[str] = attr.ib(default=None)
     evseid: Optional[str] = attr.ib(default=None)
+    stateofcharge: Optional[float] = attr.ib(default=None)
 
 
 @attr.s(auto_attribs=True)
 class SessionStopData(SessionUpdateData):
     locationid: Optional[str] = attr.ib(default=None)
     evseid: Optional[str] = attr.ib(default=None)
+    stateofcharge: Optional[float] = attr.ib(default=None)
 
 
 @attr.s(auto_attribs=True)
@@ -141,27 +144,37 @@ class WebhookPayload:
         PingData,
     ]
 
+    def _filter_and_create_data(self, data_class):
+        """Helper method to filter data and create the appropriate data class instance."""
+        if isinstance(self.data, dict):
+            field_names = {field.name for field in attr.fields(data_class)}
+            filtered_data = {k: v for k, v in self.data.items() if k in field_names}
+            return data_class(**filtered_data)
+        else:
+            return data_class(**self.data)
+
     def __attrs_post_init__(self):
         if self.type == WebhookPayloadType.ChargePointBooted:
-            self.data = ChargePointBootedData(**self.data)
+            self.data = self._filter_and_create_data(ChargePointBootedData)
         elif self.type == WebhookPayloadType.OperationalStatusChanged:
-            self.data = OperationalStatusChangedData(**self.data)
+            self.data = self._filter_and_create_data(OperationalStatusChangedData)
         elif self.type == WebhookPayloadType.ConnectivityStatusChanged:
-            self.data["status"] = self.data["status"].upper()
-            self.data = ConnectivityStatusChangedData(**self.data)
+            if isinstance(self.data, dict):
+                self.data["status"] = self.data["status"].upper()
+            self.data = self._filter_and_create_data(ConnectivityStatusChangedData)
         elif self.type == WebhookPayloadType.SessionStart:
-            self.data = SessionStartData(**self.data)
+            self.data = self._filter_and_create_data(SessionStartData)
         elif self.type == WebhookPayloadType.SessionUpdate:
-            self.data = SessionUpdateData(**self.data)
+            self.data = self._filter_and_create_data(SessionUpdateData)
         elif self.type == WebhookPayloadType.SessionStop:
-            self.data = SessionStopData(**self.data)
+            self.data = self._filter_and_create_data(SessionStopData)
         elif self.type == WebhookPayloadType.CDRCreated:
-            self.data = CDRCreatedData(**self.data)
+            self.data = self._filter_and_create_data(CDRCreatedData)
         elif self.type == WebhookPayloadType.LocationCreated:
-            self.data = LocationCreatedData(**self.data)
+            self.data = self._filter_and_create_data(LocationCreatedData)
         elif self.type == WebhookPayloadType.LocationUpdated:
-            self.data = LocationUpdatedData(**self.data)
+            self.data = self._filter_and_create_data(LocationUpdatedData)
         elif self.type == WebhookPayloadType.MSPInvoiceProposalStatus:
-            self.data = MSPInvoiceProposalStatusData(**self.data)
+            self.data = self._filter_and_create_data(MSPInvoiceProposalStatusData)
         elif self.type == WebhookPayloadType.Ping:
-            self.data = PingData(**self.data)
+            self.data = self._filter_and_create_data(PingData)
